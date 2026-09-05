@@ -1,5 +1,6 @@
-from typing_extensions import TypedDict
 from typing import List
+
+from typing_extensions import TypedDict
 
 
 class QueryGraphState(TypedDict):

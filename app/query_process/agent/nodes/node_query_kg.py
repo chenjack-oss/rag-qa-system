@@ -1,6 +1,8 @@
-import time
 import sys
-from app.utils.task_utils import add_running_task, add_done_task
+import time
+
+from app.utils.task_utils import add_done_task, add_running_task
+
 
 def node_query_kg(state):
     """

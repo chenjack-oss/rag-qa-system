@@ -1,10 +1,13 @@
-import sys
 import os
-from app.utils.task_utils import add_running_task,add_done_task
-from app.lm.embedding_utils import generate_embeddings
-from app.clients.milvus_utils import create_hybrid_search_requests,hybrid_search,get_milvus_client
+import sys
+
+from dotenv import find_dotenv, load_dotenv
+
+from app.clients.milvus_utils import create_hybrid_search_requests, get_milvus_client, hybrid_search
 from app.core.logger import logger
-from dotenv import load_dotenv,find_dotenv
+from app.lm.embedding_utils import generate_embeddings
+from app.utils.task_utils import add_done_task, add_running_task
+
 load_dotenv(find_dotenv())
 
 
@@ -31,7 +34,7 @@ def node_search_embedding(state):
     # 1. 从会话状态中提取核心入参，为后续检索做准备
     query = state.get("rewritten_query")  # 提取改写后的用户问题（含商品名，独立完整）
     item_names = state.get("item_names")  # 提取已确认的标准化商品名列表（精准过滤用）
-    
+
     logger.info(f"核心入参提取: query='{query}', item_names={item_names}")
 
     # 2. 对改写后的用户问题执行向量化，生成BGEM3稠密+稀疏向量
@@ -39,7 +42,7 @@ def node_search_embedding(state):
     # 调用向量化函数，入参为列表（支持批量，此处仅单条查询）
     # 生成与商品名匹配的语义向量，用于后续相似性检索
     embeddings = generate_embeddings([query])
-    
+
     dense_vec = embeddings.get("dense")[0]
     sparse_vec = embeddings.get("sparse")[0]
     # 打印稠密/稀疏向量日志，便于调试向量生成结果
@@ -58,7 +61,7 @@ def node_search_embedding(state):
     if not item_names:
         logger.warning("item_names 为空，跳过检索，返回空结果")
         return {"embedding_chunks": []}
-        
+
     # 对每个商品名添加双引号，拼接为Milvus支持的in语法格式
     quoted = ", ".join(f'"{v}"' for v in item_names)
     # 构造最终过滤表达式
@@ -91,7 +94,7 @@ def node_search_embedding(state):
     logger.info(f"节点 search_embedding 处理成功，检索到 {hit_count} 条相关片段")
     if hit_count > 0:
         logger.debug(f"Top1 检索结果示例: {res[0][0]}")
-        
+
     # 标记当前任务完成，更新任务状态
     add_done_task(state["session_id"], sys._getframe().f_code.co_name, state.get("is_stream"))
 
@@ -117,7 +120,7 @@ if __name__ == "__main__":
         # 验证结果
         chunks = result.get("embedding_chunks", [])
         print(f"\n>>> 测试完成！检索到 {len(chunks)} 条结果")
-        
+
         if chunks:
             print("\n>>> Top 1 结果详情:")
             top1 = chunks[0]
@@ -129,7 +132,7 @@ if __name__ == "__main__":
             print(f"Content Preview: {entity.get('content', '')[:100]}...")
         else:
             print("\n>>> 警告：未检索到任何结果，请检查 Milvus 数据或 item_names 是否匹配")
-            
+
     except Exception as e:
         logger.error(f"测试运行失败: {e}", exc_info=True)
 

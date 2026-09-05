@@ -1,16 +1,19 @@
-import re
 import json
 import os
+import re
 import sys
+
 # 统一类型注解，避免混用any/Any
-from typing import List, Dict, Any, Tuple
+from typing import Any, Dict, List, Tuple
+
 # LangChain文本分割器（标注核心用途，便于理解）
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from app.core.logger import logger  # 项目统一日志工具，核心替换print
+from app.import_process.agent.state import ImportGraphState
+
 # 项目内部工具/状态/日志导入（保持原有路径）
 from app.utils.task_utils import add_running_task
-from app.import_process.agent.state import ImportGraphState
-from app.core.logger import logger  # 项目统一日志工具，核心替换print
 
 # --- 配置参数 (Configuration) ---
 # 单个Chunk最大字符长度：超过则触发二次切分（适配大模型上下文窗口）
@@ -419,8 +422,8 @@ if __name__ == '__main__':
     """
 
     """本地测试入口：单独运行该文件时，执行MD图片处理全流程测试"""
-    from app.utils.path_util import PROJECT_ROOT
     from app.import_process.agent.nodes.node_md_img import node_md_img
+    from app.utils.path_util import PROJECT_ROOT
 
     logger.info(f"本地测试 - 项目根目录：{PROJECT_ROOT}")
 

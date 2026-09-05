@@ -1,15 +1,16 @@
-from pathlib import Path
 import uuid
+from pathlib import Path
+
 import uvicorn
-from fastapi import FastAPI, BackgroundTasks, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
 
-from app.utils.task_utils import *
-from app.utils.sse_utils import create_sse_queue, SSEEvent, sse_generator
 from app.clients.mongo_history_utils import *
 from app.query_process.agent.main_graph import query_app
+from app.utils.sse_utils import SSEEvent, create_sse_queue, sse_generator
+from app.utils.task_utils import *
 
 # 后续导入启动图对象
 #from app.query_process.main_graph import query_app

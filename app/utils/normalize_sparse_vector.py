@@ -1,4 +1,6 @@
 import numpy as np
+
+
 def normalize_sparse_vector(sparse_vec):
     """
     对稀疏向量做 L2 归一化（仅处理非零维度，不影响零维度）

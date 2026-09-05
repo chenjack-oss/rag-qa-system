@@ -1,7 +1,8 @@
 import sys
-from typing import List, Dict, Any
-from app.utils.task_utils import add_running_task, add_done_task
+from typing import Any, Dict, List
+
 from app.core.logger import logger
+from app.utils.task_utils import add_done_task, add_running_task
 
 
 # RRF节点
@@ -17,9 +18,9 @@ def _as_entity_list(state_list) -> List[Dict[str, Any]]:
     for doc in (state_list or []):
         if not doc:
             continue
-        
+
         final_ent = {}
-        
+
         # 情况A: doc 是 Pymilvus 的 Hit 对象 (具有 entity 属性)
         # Hit 对象结构通常是: id=xxx, distance=xxx, entity={field1: val1, ...}
         # 这里的 id 是 Milvus 内部的主键 ID (int64 或 str)
@@ -37,12 +38,12 @@ def _as_entity_list(state_list) -> List[Dict[str, Any]]:
                      final_ent = dict(entity_content)
                  except:
                      pass
-            
+
             # 2. 补充最外层的 id 和 distance
             # 优先保留 entity 内部已有的 chunk_id/id，如果没有，则把外层的 id 补进去
             if "id" not in final_ent and "chunk_id" not in final_ent:
                 final_ent["id"] = doc.id
-            
+
             # 补充 distance (score)
             if hasattr(doc, "distance"):
                 final_ent["score"] = doc.distance
@@ -68,11 +69,11 @@ def _as_entity_list(state_list) -> List[Dict[str, Any]]:
              ent = doc.get("entity") or doc
              if isinstance(ent, dict):
                  final_ent = ent
-        
+
         # 最终校验：必须是非空字典
         if final_ent and isinstance(final_ent, dict):
             out.append(final_ent)
-            
+
     return out
 
 
@@ -104,7 +105,7 @@ def reciprocal_rank_fusion(
             # 这是为了保持 API 兼容性：无论用户怎么命名主键，SDK 都用 id 来指代 “这条数据的唯一标识”
             # 你在向量数据库 UI 里看到的 pk 是表结构定义名，而代码里拿到的 id 是API 返回的统一主键别名
             chunk_id = item.get("chunk_id") or item.get("id")
-            
+
             if not chunk_id:
                 # 如果找不到 ID，记录警告并跳过，避免程序崩溃
                 logger.warning(
@@ -113,7 +114,7 @@ def reciprocal_rank_fusion(
 
             # RRF 核心公式: score += weight * (1 / (k + rank))
             score_map[chunk_id] = score_map.get(chunk_id, 0.0) + weight * (1.0 / (k + rank))
-            
+
             # 只记录第一次遇到的文档实体对象
             chunk_map.setdefault(chunk_id, item)
 
@@ -122,14 +123,14 @@ def reciprocal_rank_fusion(
     for chunk_id, score in score_map.items():
         doc_item = chunk_map[chunk_id]
         merged.append((doc_item, score))
-    
+
     # 按分数降序排序 (得分越高越靠前)
     merged.sort(key=lambda x: x[1], reverse=True)
-    
+
     # 3. 截断结果
     if max_results is not None:
         merged = merged[:max_results]
-        
+
     return merged
 
 
@@ -160,7 +161,7 @@ def node_rrf(state):
     hyde_embedding_chunks = _as_entity_list(state.get("hyde_embedding_chunks"))
 
     logger.info(f"RRF 输入统计: Embedding源={len(embedding_chunks)}条, HyDE源={len(hyde_embedding_chunks)}条")
-    
+
     # Debug 日志：打印部分 ID 以便核对
     if embedding_chunks:
         logger.debug(f"Embedding源 chunk_ids (前5个): {[c.get('chunk_id') for c in embedding_chunks[:5]]}")
@@ -192,58 +193,58 @@ if __name__ == "__main__":
     print("="*50)
 
     # 1. 构造假数据 (模拟真实数据库字段)
-    # 模拟 Embedding 检索结果 
+    # 模拟 Embedding 检索结果
     mock_embedding_chunks = [
         {
-            "id": "doc_1", 
-            "pk": "pk_1", 
-            "file_title": "操作手册_v1.pdf", 
-            "item_name": "HAK 180 烫金机", 
-            "content": "内容1：打开电源开关...", 
+            "id": "doc_1",
+            "pk": "pk_1",
+            "file_title": "操作手册_v1.pdf",
+            "item_name": "HAK 180 烫金机",
+            "content": "内容1：打开电源开关...",
             "score": 0.9
         },
         {
-            "id": "doc_2", 
-            "pk": "pk_2", 
-            "file_title": "维修指南.pdf", 
-            "item_name": "HAK 180 烫金机", 
-            "content": "内容2：遇到故障请联系...", 
+            "id": "doc_2",
+            "pk": "pk_2",
+            "file_title": "维修指南.pdf",
+            "item_name": "HAK 180 烫金机",
+            "content": "内容2：遇到故障请联系...",
             "score": 0.8
         },
         {
-            "id": "doc_3", 
-            "pk": "pk_3", 
-            "file_title": "参数表.xlsx", 
-            "item_name": "HAK 180 烫金机", 
-            "content": "内容3：电压220V...", 
+            "id": "doc_3",
+            "pk": "pk_3",
+            "file_title": "参数表.xlsx",
+            "item_name": "HAK 180 烫金机",
+            "content": "内容3：电压220V...",
             "score": 0.7
         }
     ]
-    
+
     # 模拟 HyDE 检索结果 (包含 3 个文档，顺序不同，且有新文档 doc_4)
     mock_hyde_chunks = [
         {
-            "id": "doc_3", 
-            "pk": "pk_3", 
-            "file_title": "参数表.xlsx", 
-            "item_name": "HAK 180 烫金机", 
-            "content": "内容3：电压220V...", 
+            "id": "doc_3",
+            "pk": "pk_3",
+            "file_title": "参数表.xlsx",
+            "item_name": "HAK 180 烫金机",
+            "content": "内容3：电压220V...",
             "score": 0.85
-        }, 
+        },
         {
-            "id": "doc_1", 
-            "pk": "pk_1", 
-            "file_title": "操作手册_v1.pdf", 
-            "item_name": "HAK 180 烫金机", 
-            "content": "内容1：打开电源开关...", 
+            "id": "doc_1",
+            "pk": "pk_1",
+            "file_title": "操作手册_v1.pdf",
+            "item_name": "HAK 180 烫金机",
+            "content": "内容1：打开电源开关...",
             "score": 0.82
-        }, 
+        },
         {
-            "id": "doc_4", 
-            "pk": "pk_4", 
-            "file_title": "安全须知.docx", 
-            "item_name": "HAK 180 烫金机", 
-            "content": "内容4：操作时请佩戴手套...", 
+            "id": "doc_4",
+            "pk": "pk_4",
+            "file_title": "安全须知.docx",
+            "item_name": "HAK 180 烫金机",
+            "content": "内容4：操作时请佩戴手套...",
             "score": 0.75
         }
     ]
@@ -259,7 +260,7 @@ if __name__ == "__main__":
     try:
         # 运行节点
         result = node_rrf(mock_state)
-        
+
         # 验证结果
         rrf_chunks = result.get("rrf_chunks", [])
         print("\n" + "="*50)
@@ -267,7 +268,7 @@ if __name__ == "__main__":
         print(f"输入数量: Embedding={len(mock_embedding_chunks)}, HyDE={len(mock_hyde_chunks)}")
         print(f"输出数量: {len(rrf_chunks)}")
         print("-" * 30)
-        
+
         # 打印详细排名
         print("最终排名:")
         for i, doc in enumerate(rrf_chunks, 1):
@@ -277,17 +278,17 @@ if __name__ == "__main__":
 
         # 验证预期逻辑：
         ids = [d.get("id") or d.get("chunk_id") for d in rrf_chunks]
-        
+
         if "doc_1" in ids and "doc_3" in ids:
             print("\n[PASS] 交叉文档 (doc_1, doc_3) 成功融合保留")
         else:
             print("\n[FAIL] 交叉文档丢失")
-            
+
         if len(ids) == 4:
             print("[PASS] 并集数量正确 (3+3-2重叠=4)")
         else:
             print(f"[FAIL] 并集数量错误: 期望4, 实际{len(ids)}")
-            
+
         print("="*50)
 
     except Exception as e:

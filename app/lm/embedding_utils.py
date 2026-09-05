@@ -1,6 +1,7 @@
 from pymilvus.model.hybrid import BGEM3EmbeddingFunction
-from app.core.logger import logger
+
 from app.conf.embedding_config import embedding_config
+from app.core.logger import logger
 
 # 模型单例对象，避免重复初始化
 _bge_m3_ef = None

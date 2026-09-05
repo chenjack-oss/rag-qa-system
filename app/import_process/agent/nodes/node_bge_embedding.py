@@ -1,11 +1,12 @@
-import sys
 import os
-from typing import Any, List, Dict
+import sys
+from typing import Any, Dict, List
 
-from app.import_process.agent.state import ImportGraphState
-from app.lm.embedding_utils import get_bge_m3_ef, generate_embeddings
-from app.utils.task_utils import add_running_task,add_done_task
 from app.core.logger import logger
+from app.import_process.agent.state import ImportGraphState
+from app.lm.embedding_utils import generate_embeddings, get_bge_m3_ef
+from app.utils.task_utils import add_done_task, add_running_task
+
 
 # ==========================================
 # BGE-M3向量化核心节点
@@ -224,7 +225,7 @@ if __name__ == '__main__':
         result_chunks = result_state.get("chunks", [])
 
         # 打印测试结果统计
-        logger.info(f"=== 向量化节点本地测试完成 ===")
+        logger.info("=== 向量化节点本地测试完成 ===")
         logger.info(f"测试任务ID：{test_state.get('task_id')}")
         logger.info(f"待处理切片数：2 | 实际处理切片数：{len(result_chunks)}")
         logger.info(f"向量维度：{result_chunks}")

@@ -1,7 +1,8 @@
+import asyncio
 import json
 import queue
-import asyncio
-from typing import Dict, Any, Optional, AsyncGenerator
+from typing import Any, Dict, Optional
+
 from fastapi import Request
 
 
@@ -84,7 +85,7 @@ async def sse_generator(session_id: str, request: Request):
 
             event = msg.get("event")
             data = msg.get("data")
-            
+
             # print(f"[SSE] Yielding event {event} for {session_id}")
 
             # 特殊关闭事件

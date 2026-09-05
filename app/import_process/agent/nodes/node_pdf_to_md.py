@@ -1,18 +1,20 @@
 # 系统库
 import os
+import shutil
 import sys
 import time
-import requests
 import zipfile
-import shutil
 from pathlib import Path
+
+import requests
+
+from app.conf.mineru_config import mineru_config
+from app.core.logger import logger  # 统一日志工具
 
 # 项目内部库
 from app.import_process.agent.state import ImportGraphState, create_default_state
 from app.utils.format_utils import format_state
-from app.utils.task_utils import add_running_task, add_done_task
-from app.conf.mineru_config import mineru_config
-from app.core.logger import logger  # 统一日志工具
+from app.utils.task_utils import add_done_task, add_running_task
 
 # MinerU配置（缓存配置信息）
 MINERU_BASE_URL = mineru_config.base_url
@@ -209,7 +211,7 @@ def step_3_download_and_extract(zip_url: str, output_dir_obj: Path, pdf_stem: st
     logger.info(f"[步骤1/4] ZIP包下载成功，保存路径：{zip_save_path}")
 
     # 2. 清理旧解压目录并解压ZIP包（避免旧文件干扰，为每个PDF创建专属目录）
-    logger.info(f"[步骤2/4] 开始解压ZIP包...")
+    logger.info("[步骤2/4] 开始解压ZIP包...")
     extract_target_dir = output_dir_obj / pdf_stem
 
     # 清理旧目录，异常则警告不终止
@@ -230,7 +232,7 @@ def step_3_download_and_extract(zip_url: str, output_dir_obj: Path, pdf_stem: st
     logger.info(f"[步骤2/4] ZIP包解压完成，解压目录：{extract_target_dir}")
 
     # 3. 递归查找解压目录下所有MD文件（适配子目录结构）
-    logger.info(f"[步骤3/4] 开始查找解压目录中的MD文件...")
+    logger.info("[步骤3/4] 开始查找解压目录中的MD文件...")
     md_file_list = list(extract_target_dir.rglob("*.md"))
     if not md_file_list:
         raise FileNotFoundError(f"[步骤3/4] 解压目录中未找到任何.md格式文件：{extract_target_dir}")

@@ -1,7 +1,8 @@
-from app.utils.task_utils import *
-from app.lm.reranker_utils import get_reranker_model
-from app.core.logger import logger
 import sys
+
+from app.core.logger import logger
+from app.lm.reranker_utils import get_reranker_model
+from app.utils.task_utils import *
 
 # -----------------------------
 # Rerank / TopK 全局常量（不从 state 读取）
@@ -38,11 +39,11 @@ def step_1_merge_docs(state):
       - url: 来源链接（本地为空，联网文档有）
       - source: 来源标记 ("local" 或 "web")
     """
-    
+
     # 1. 提取输入源
     rrf_docs = state.get("rrf_chunks") or []
     web_docs = state.get("web_search_docs") or []
-    
+
     logger.info(f"Step 1: 开始合并文档 - 本地RRF源: {len(rrf_docs)}条, 联网Web源: {len(web_docs)}条")
     doc_items = []
     # ---------------------------------------------------------
@@ -52,17 +53,17 @@ def step_1_merge_docs(state):
         # 简化：直接使用 dict(doc) 转换，如果 doc 本身是 dict 则无损，如果是对象则尝试转换
         # 由于上游 RRF 节点已经做了 _as_entity_list 处理，这里 doc 极大概率已经是纯字典
         # 因此可以移除繁琐的 try-except 和 entity 嵌套判断，直接取值
-        
+
         # 兼容性处理：优先取 'entity' 字段（防守式编程），若无则视为 doc 本身即 entity
         # 注意：这里的 doc 应当已经是字典（由上游 _as_entity_list 保证）
         entity = doc.get("entity") if isinstance(doc, dict) and "entity" in doc else doc
-        
+
         # 提取核心文本 (content)，这是重排序的依据
         # 如果不是字典或无 content，则跳过
         if not isinstance(entity, dict):
             logger.warning(f"本地文档格式异常 (index={i}): {type(entity)}")
             continue
-            
+
         content = entity.get("content")
         if not content:
             # 仅在 debug 模式记录，避免生产环境日志刷屏
@@ -91,11 +92,11 @@ def step_1_merge_docs(state):
         text = (doc.get("snippet") or doc.get("content") or "").strip()
         url = (doc.get("url") or "").strip()
         title = (doc.get("title") or "").strip()
-        
+
         if not text:
             logger.debug(f"跳过无内容联网结果 (index={i})")
             continue
-            
+
         doc_items.append({
             "text": text,
             "doc_id": None, # 联网结果无固定 ID
@@ -123,7 +124,7 @@ def step_2_rerank_docs(state, doc_items):
         return []
 
     logger.info(f"Step 2: 开始重排序 (Rerank), 待排序文档数: {len(doc_items)}")
-    
+
     # 初始化重排序模型（这里以使用 BGE 重排序模型为例）
     texts = [x["text"] for x in doc_items]
     try:
@@ -232,13 +233,13 @@ def step_3_topk(scored_docs):
 
     # 按最终计算的topk值，截取前topk条文档
     topk_docs = scored_docs[:topk]
-    
+
     logger.info(f"Step 3: 截断完成，保留前 {len(topk_docs)} 条文档 (TopK={topk})")
-    
+
     if topk_docs:
         preview = ", ".join([f"{d.get('chunk_id') or 'Web'}({d.get('score'):.3f})" for d in topk_docs[:3]])
         logger.debug(f"Step 3: Top3 文档预览: {preview}")
-        
+
     # 返回动态TopK处理后的文档列表
     return topk_docs
 
@@ -257,7 +258,7 @@ def node_rerank(state):
   scored_docs = step_2_rerank_docs(state, doc_items)
   # 阶段三：动态 TopK
   topk_docs = step_3_topk(scored_docs)
-  
+
   logger.info(f"Rerank 节点处理结束, 最终输出 {len(topk_docs)} 条文档")
 
   add_done_task(state['session_id'], sys._getframe().f_code.co_name, state.get("is_stream"))
@@ -268,7 +269,7 @@ if __name__ == "__main__":
     print("\n" + "="*50)
     print(">>> 启动 node_rerank 本地测试")
     print("="*50)
-    
+
     # 1. 模拟数据
     # 1.1 RRF 本地文档数据
     mock_rrf_chunks = [
@@ -276,13 +277,13 @@ if __name__ == "__main__":
         {"chunk_id": "local_2", "content": "BGE是一个强大的重排序模型", "title": "模型介绍", "score": 0.8},
         {"chunk_id": "local_3", "content": "无关的测试文档内容", "title": "测试文档", "score": 0.1} # 预期低分
     ]
-    
+
     # 1.2 MCP 联网搜索数据
     mock_web_docs = [
         {"title": "Rerank技术详解", "url": "http://web.com/1", "snippet": "Rerank即重排序，常用于RAG系统的第二阶段"},
         {"title": "无关网页", "url": "http://web.com/2", "snippet": "今天天气不错，适合出去游玩"} # 预期低分
     ]
-    
+
     mock_state = {
         "session_id": "test_rerank_session",
         "rewritten_query": "什么是RRF和Rerank？", # 查询意图：想了解这两个算法
@@ -295,21 +296,21 @@ if __name__ == "__main__":
         # 运行节点
         result = node_rerank(mock_state)
         reranked = result.get("reranked_docs", [])
-        
+
         print("\n" + "="*50)
         print(">>> 测试结果摘要:")
         print(f"输入文档总数: {len(mock_rrf_chunks) + len(mock_web_docs)}")
         print(f"输出文档总数: {len(reranked)}")
         print("-" * 30)
-        
+
         print("最终排名:")
         for i, doc in enumerate(reranked, 1):
             print(f"Rank {i}: Source={doc.get('source')}, Score={doc.get('score'):.4f}, Text={doc.get('text')[:20]}...")
-            
+
         # 验证逻辑：
         # 预期 "local_1", "local_2", "Rerank技术详解" 分数较高
         # 预期 "local_3", "无关网页" 分数较低，可能被截断或排在最后
-        
+
         top1_score = reranked[0].get("score")
         if top1_score > 0:
             print("\n[PASS] Rerank 打分正常")

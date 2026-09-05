@@ -1,7 +1,8 @@
 import os
+
 from neo4j import GraphDatabase
 
-_neo4j_driver = None    
+_neo4j_driver = None
 def get_neo4j_driver() -> GraphDatabase:
     """
     获取 Neo4j 驱动实例

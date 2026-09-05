@@ -1,6 +1,7 @@
-from pathlib import Path
-from app.utils.path_util import PROJECT_ROOT
+
 from app.core.logger import logger  # 可选，加日志更友好
+from app.utils.path_util import PROJECT_ROOT
+
 
 def load_prompt(name: str, **kwargs) -> str:
     """

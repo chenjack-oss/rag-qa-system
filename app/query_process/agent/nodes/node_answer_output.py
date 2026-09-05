@@ -1,12 +1,13 @@
-import sys
-from app.utils.task_utils import add_running_task, add_done_task, set_task_result
-from app.utils.sse_utils import push_to_session, SSEEvent
-from app.query_process.agent.state import QueryGraphState
-from app.core.logger import logger
-from app.core.load_prompt import load_prompt
-from app.lm.lm_utils import get_llm_client
-from app.clients.mongo_history_utils import save_chat_message
 import re
+import sys
+
+from app.clients.mongo_history_utils import save_chat_message
+from app.core.load_prompt import load_prompt
+from app.core.logger import logger
+from app.lm.lm_utils import get_llm_client
+from app.query_process.agent.state import QueryGraphState
+from app.utils.sse_utils import SSEEvent, push_to_session
+from app.utils.task_utils import add_done_task, add_running_task, set_task_result
 
 _IMAGE_BLOCK_MARKER = "【图片】"
 MAX_CONTEXT_CHARS = 12000
@@ -113,7 +114,7 @@ def step_2_construct_prompt(state: QueryGraphState) -> str:
         history_str += f"用户: {text}\n"
       elif role == "assistant" and text:
         history_str += f"助手: {text}\n"
-        
+
       used += len(history_str) + 2
       if used > MAX_CONTEXT_CHARS:
         break
@@ -143,7 +144,7 @@ def step_3_generate_response(state: QueryGraphState, prompt: str) -> QueryGraphS
   """
   logger.info("---Step 3: 开始生成回答 (LLM Generation)---")
   logger.debug(f"最终Prompt内容: {prompt}")
-  
+
   # 获取 LLM 客户端
   # 注意：这里我们使用统一的 get_llm_client 获取实例
   llm = get_llm_client()
@@ -164,14 +165,14 @@ def step_3_generate_response(state: QueryGraphState, prompt: str) -> QueryGraphS
           final_text += delta
           # 将增量内容放入队列
           push_to_session(session_id, SSEEvent.DELTA, {"delta": delta})
-      
+
       logger.info(f"流式输出完成，总长度: {len(final_text)}")
 
     except Exception as e:
       logger.error(f"流式生成出错: {e}", exc_info=True)
       # 发生错误时，尝试推送到前端
       push_to_session(session_id, SSEEvent.ERROR, {"error": str(e)})
-      
+
     state["answer"] = final_text
   else:
     # 非流式直接调用
@@ -300,10 +301,10 @@ def node_answer_output(state: QueryGraphState) -> QueryGraphState:
   """
   logger.info("---node_answer_output (答案生成) 节点开始处理---")
   add_running_task(state['session_id'], sys._getframe().f_code.co_name, state.get("is_stream"))
-  
+
   # 阶段一：检查answer是否存在,如果存在直接输出answer中的答案
   answer_exists = step_1_check_answer(state)
-  
+
   # 阶段二  如果没有answer则 构建 Prompt
   if not answer_exists:
     prompt = step_2_construct_prompt(state)
@@ -321,7 +322,7 @@ def node_answer_output(state: QueryGraphState) -> QueryGraphState:
     step_4_write_history(state, image_urls=image_urls)
 
   add_done_task(state['session_id'], sys._getframe().f_code.co_name, state.get("is_stream"))
-  
+
   # 阶段五: 流式输出结束，发送 final 事件 [最后兜底，确保图片都能争取渲染和结束]
   logger.info(f"---发送 final 事件---图片为：{image_urls}")
   if state.get("is_stream"):
@@ -334,7 +335,7 @@ def node_answer_output(state: QueryGraphState) -> QueryGraphState:
             "image_urls": image_urls  # 发送图片URL给前端
         }
     )
-  
+
   logger.info("---node_answer_output 节点处理结束---")
   return state
 
@@ -343,7 +344,7 @@ if __name__ == "__main__":
     print("\n" + "="*50)
     print(">>> 启动 node_answer_output 本地测试")
     print("="*50)
-    
+
     # 1. 构造模拟数据
     # 模拟重排序后的文档列表 (reranked_docs)
     # 包含：本地文档（带Markdown图片）、联网结果（带URL字段）、纯文本文档
@@ -403,10 +404,10 @@ if __name__ == "__main__":
     try:
         # 运行节点
         result = node_answer_output(mock_state)
-        
+
         print("\n" + "="*50)
         print(">>> 测试结果摘要:")
-        
+
         # 1. 验证 Prompt 构建
         if "prompt" in result:
             print(f"[PASS] Prompt 构建成功 (长度: {len(result['prompt'])})")
@@ -427,7 +428,7 @@ if __name__ == "__main__":
         # 1. http://local-server/images/panel_view.jpg (来自 local_101)
         # 2. http://local-server/images/knob_detail.png (来自 local_101)
         # 3. http://example.com/hak180_troubleshooting.jpeg (来自 web 结果的 url 字段)
-        
+
         # 注意：这里我们没办法直接从 result state 里拿到 image_urls，因为它是作为 SSE 推送出去的，或者存库了
         # 但我们可以通过日志观察 _extract_images_from_docs 的输出
         # 如果需要验证，可以临时修改 node_answer_output 返回 image_urls

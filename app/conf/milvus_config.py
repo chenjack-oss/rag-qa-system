@@ -1,6 +1,7 @@
 # 导入核心依赖（和其他配置类共用，只需导入一次）
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
+
 from dotenv import load_dotenv
 
 # 提前加载.env配置文件（全局执行一次即可，无需重复写）

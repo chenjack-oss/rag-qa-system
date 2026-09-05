@@ -1,27 +1,30 @@
 import os
 import shutil
 import uuid
-from typing import List, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, List
+
 import uvicorn
+
 # 第三方库
-from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+
 # 项目内部工具/配置/客户端
 from app.clients.minio_utils import get_minio_client
+from app.core.logger import logger  # 项目统一日志工具
+from app.import_process.agent.main_graph import kb_import_app  # LangGraph全流程编译实例
+from app.import_process.agent.state import get_default_state
 from app.utils.path_util import PROJECT_ROOT
 from app.utils.task_utils import (
-    add_running_task,
     add_done_task,
+    add_running_task,
     get_done_task_list,
     get_running_task_list,
-    update_task_status,
     get_task_status,
+    update_task_status,
 )
-from app.import_process.agent.state import get_default_state
-from app.import_process.agent.main_graph import kb_import_app  # LangGraph全流程编译实例
-from app.core.logger import logger  # 项目统一日志工具
 
 # 初始化FastAPI应用实例
 # 标题和描述会在Swagger文档(http://ip:port/docs)中展示

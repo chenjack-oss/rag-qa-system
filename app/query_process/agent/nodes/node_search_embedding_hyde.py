@@ -1,12 +1,14 @@
 # HyDE节点
 import sys
-from app.utils.task_utils import add_running_task, add_done_task
-from app.lm.lm_utils import *
-from app.lm.embedding_utils import *
+
+from dotenv import find_dotenv, load_dotenv
+
 from app.clients.milvus_utils import *
-from app.core.logger import logger
 from app.core.load_prompt import load_prompt
-from dotenv import load_dotenv, find_dotenv
+from app.core.logger import logger
+from app.lm.embedding_utils import *
+from app.lm.lm_utils import *
+from app.utils.task_utils import add_done_task, add_running_task
 
 load_dotenv(find_dotenv())
 
@@ -36,10 +38,10 @@ def step_1_create_hyde_doc(rewritten_query: str) -> str:
         # 调用LLM生成
         response = llm.invoke(hyde_prompt)
         hyde_doc = response.content
-        
+
         logger.info(f"Step 1: 假设文档生成完成, 长度: {len(hyde_doc)} 字符")
         logger.debug(f"Step 1: 文档预览: {hyde_doc[:50]}...")
-        
+
         return hyde_doc
 
     except Exception as e:
@@ -82,13 +84,13 @@ def step_2_search_embedding_hyde(
     # 2. 生成向量 (Dense + Sparse)
     logger.info("Step 2: 正在生成混合向量 (Embedding)...")
     embeddings = generate_embeddings([combined_text])
-    
+
     # 3. 准备 Milvus 检索
     collection_name = os.environ.get("CHUNKS_COLLECTION")
     if not collection_name:
         logger.error("Step 2 Error: 环境变量 CHUNKS_COLLECTION 未设置")
         return []
-        
+
     logger.info(f"Step 2: 准备在集合 '{collection_name}' 中执行混合检索")
 
     # 构造过滤表达式 (如果有商品名限制)
@@ -126,10 +128,10 @@ def step_2_search_embedding_hyde(
             limit=top_k,
             output_fields=list(output_fields),
         )
-        
+
         hit_count = len(res[0]) if res and len(res) > 0 else 0
         logger.info(f"Step 2: 检索完成, 找到 {hit_count} 个匹配切片")
-        
+
         return res
 
     except Exception as e:
@@ -162,7 +164,7 @@ def node_search_embedding_hyde(state):
     rewritten_query = state.get("rewritten_query")
     if not rewritten_query:
         rewritten_query = state.get("original_query")
-    
+
     if not rewritten_query:
         logger.error("HyDE节点错误: 未找到有效的用户查询 (rewritten_query/original_query 均为空)")
         return {}
@@ -191,10 +193,10 @@ def node_search_embedding_hyde(state):
             item_names=item_names,
             top_k=5,
         )
-        
+
         hit_count = len(res[0]) if res and len(res) > 0 else 0
         logger.info(f"Step 2: 检索完成，召回 {hit_count} 条相关切片")
-        
+
         if hit_count > 0:
             # 打印第一条结果用于调试
             first_hit = res[0][0]
@@ -220,7 +222,7 @@ if __name__ == "__main__":
     print("\n" + "="*50)
     print(">>> 启动 node_search_embedding_hyde 本地测试")
     print("="*50)
-    
+
     # 模拟输入状态
     mock_state = {
         "session_id": "test_hyde_session_001",
@@ -233,13 +235,13 @@ if __name__ == "__main__":
     try:
         # 运行节点
         result = node_search_embedding_hyde(mock_state)
-        
+
         print("\n" + "="*50)
         print(">>> 测试结果摘要:")
         print(f"HyDE Doc Generated: {bool(result.get('hyde_doc'))}")
         if result.get("hyde_doc"):
             print(f"Doc Preview: {result.get('hyde_doc')[:50]}...")
-            
+
         chunks = result.get("hyde_embedding_chunks", [])
         print(f"Chunks Found: {len(chunks)} , chunks内容：{chunks}")
         if chunks:

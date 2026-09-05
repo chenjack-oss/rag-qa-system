@@ -1,5 +1,6 @@
-import os
-from pymilvus import MilvusClient, AnnSearchRequest, WeightedRanker
+
+from pymilvus import AnnSearchRequest, MilvusClient, WeightedRanker
+
 from app.conf.milvus_config import milvus_config
 from app.core.logger import logger
 

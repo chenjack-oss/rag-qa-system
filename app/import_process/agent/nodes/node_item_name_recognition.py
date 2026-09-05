@@ -1,32 +1,39 @@
 # 导入基础库：系统、路径、类型注解（类型注解提升代码可读性和可维护性）
 import os
 import sys
-from typing import List, Dict, Any, Tuple
+from typing import Any, Dict, List, Tuple
+
+# 导入LangChain消息类（标准化大模型对话消息格式）
+from langchain_core.messages import HumanMessage, SystemMessage
 
 # 导入Milvus客户端（向量数据库核心操作）、数据类型枚举（定义集合Schema）
-from pymilvus import MilvusClient, DataType
-# 导入LangChain消息类（标准化大模型对话消息格式）
-from langchain_core.messages import SystemMessage, HumanMessage
+from pymilvus import DataType
+
+# 2. Milvus工具：获取单例Milvus客户端，实现连接复用
+from app.clients.milvus_utils import get_milvus_client
+
+# 8. 提示词工具：加载本地prompt模板，实现提示词与代码解耦
+from app.core.load_prompt import load_prompt
+
+# 7. 日志工具：项目统一日志入口，分级输出（info/warning/error）
+from app.core.logger import logger
 
 # 导入自定义模块：
 # 1. 流程状态载体：ImportGraphState为LangGraph流程的统一状态管理对象
 from app.import_process.agent.state import ImportGraphState
-# 2. Milvus工具：获取单例Milvus客户端，实现连接复用
-from app.clients.milvus_utils import get_milvus_client
+
+# 4. 向量工具：BGE-M3模型实例、向量生成方法（稠密+稀疏向量）
+from app.lm.embedding_utils import generate_embeddings
+
 # 3. 大模型工具：获取大模型客户端，统一模型调用入口
 from app.lm.lm_utils import get_llm_client
-# 4. 向量工具：BGE-M3模型实例、向量生成方法（稠密+稀疏向量）
-from app.lm.embedding_utils import get_bge_m3_ef, generate_embeddings
+from app.utils.escape_milvus_string_utils import escape_milvus_string
+
 # 5. 稀疏向量工具：归一化处理，保证向量长度为1，提升检索准确性
 from app.utils.normalize_sparse_vector import normalize_sparse_vector
+
 # 6. 任务工具：更新任务运行状态，用于任务监控和管理
 from app.utils.task_utils import add_running_task
-# 7. 日志工具：项目统一日志入口，分级输出（info/warning/error）
-from app.core.logger import logger
-# 8. 提示词工具：加载本地prompt模板，实现提示词与代码解耦
-from app.core.load_prompt import load_prompt
-
-from app.utils.escape_milvus_string_utils import escape_milvus_string
 
 # --- 配置参数 (Configuration) ---
 # 大模型识别商品名称的上下文切片数：取前5个切片，避免上下文过长导致大模型输入超限

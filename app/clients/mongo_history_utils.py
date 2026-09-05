@@ -1,18 +1,23 @@
 # 导入系统模块：用于读取环境变量
-import os
 # 导入日志模块：用于记录程序运行日志（成功/失败/错误信息）
 import logging
-# 导入类型注解模块：用于函数参数/返回值的类型提示，提升代码可读性和规范性
-from typing import List, Dict, Any, Optional
+import os
+
 # 导入时间模块：用于生成时间戳，记录对话的创建时间
 from datetime import datetime
-# 导入pymongo核心模块：MongoDB原生Python驱动，实现数据库连接和操作
-# ASCENDING：表示升序排序，用于MongoDB索引和查询排序
-from pymongo import MongoClient, ASCENDING
+
+# 导入类型注解模块：用于函数参数/返回值的类型提示，提升代码可读性和规范性
+from typing import Any, Dict, List
+
 # 导入bson的ObjectId：MongoDB默认的主键类型，用于唯一标识文档
 from bson import ObjectId
+
 # 导入dotenv模块：用于从.env文件加载环境变量，避免硬编码敏感配置（如MongoDB连接地址）
 from dotenv import load_dotenv
+
+# 导入pymongo核心模块：MongoDB原生Python驱动，实现数据库连接和操作
+# ASCENDING：表示升序排序，用于MongoDB索引和查询排序
+from pymongo import ASCENDING, MongoClient
 
 # 加载.env文件中的环境变量，使os.getenv能读取到配置
 load_dotenv()

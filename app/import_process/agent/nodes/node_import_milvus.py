@@ -1,15 +1,17 @@
 import os
 import sys
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 # 导入Milvus相关依赖
 from pymilvus import DataType
-# 导入自定义模块
-from app.import_process.agent.state import ImportGraphState
+
 from app.clients.milvus_utils import get_milvus_client
-from app.utils.task_utils import add_running_task
-from app.core.logger import logger
 from app.conf.milvus_config import milvus_config
+from app.core.logger import logger
+
+# 导入自定义模块
 from app.utils.escape_milvus_string_utils import escape_milvus_string
+from app.utils.task_utils import add_running_task
 
 # 从配置文件读取切片集合名称，与配置解耦，便于环境切换
 CHUNKS_COLLECTION_NAME = milvus_config.chunks_collection
@@ -247,7 +249,7 @@ def _check_collection_schema_compatible(client, collection_name: str) -> bool:
                 logger.warning(f"Schema兼容性检查：字段 {fname} 未设置 nullable=True，当前Schema不兼容")
                 return False
 
-        logger.info(f"Schema兼容性检查通过：parent_title 和 part 均设置了 nullable=True")
+        logger.info("Schema兼容性检查通过：parent_title 和 part 均设置了 nullable=True")
         return True
     except Exception as e:
         logger.warning(f"Schema兼容性检查失败：{e}，保守处理视为不兼容")
@@ -395,8 +397,9 @@ def step_4_insert_data(client, chunks_json_data: List[Dict[str, Any]]) -> List[D
 if __name__ == '__main__':
     # --- 单元测试 ---
     # 目的：验证 Milvus 导入节点的完整流程，包括连接、创建集合、清理旧数据和插入新数据。
-    import sys
     import os
+    import sys
+
     from dotenv import load_dotenv
 
     # 加载环境变量 (自动寻找项目根目录的 .env)

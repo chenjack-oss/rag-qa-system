@@ -1,19 +1,18 @@
-import sys
-import os
 import json
-import logging
-from typing import List, Dict, Any, Optional
-from langchain_core.messages import SystemMessage, HumanMessage
+import os
+from typing import Dict, List
 
-from app.core.load_prompt import load_prompt
-from app.query_process.agent.state import QueryGraphState
-from app.utils.task_utils import add_running_task, add_done_task
+from dotenv import find_dotenv, load_dotenv
+from langchain_core.messages import HumanMessage, SystemMessage
+
+from app.clients.milvus_utils import create_hybrid_search_requests, get_milvus_client, hybrid_search
 from app.clients.mongo_history_utils import get_recent_messages, save_chat_message, update_message_item_names
-from app.lm.lm_utils import get_llm_client
-from app.lm.embedding_utils import generate_embeddings
-from app.clients.milvus_utils import get_milvus_client, create_hybrid_search_requests, hybrid_search
-from dotenv import load_dotenv, find_dotenv
+from app.core.load_prompt import load_prompt
 from app.core.logger import logger
+from app.lm.embedding_utils import generate_embeddings
+from app.lm.lm_utils import get_llm_client
+from app.query_process.agent.state import QueryGraphState
+from app.utils.task_utils import add_done_task, add_running_task
 
 load_dotenv(find_dotenv())
 
@@ -27,15 +26,15 @@ def step_3_extract_info(query: str, history: List[Dict]) -> Dict:
     :return: 字典 - 提取结果，格式：{"item_names": [], "rewritten_query": ""}
     """
     logger.info("Step 3: 开始提取信息 (LLM)")
-    
+
     # 1. 初始化准备
     client = get_llm_client(json_mode=True)
-    
+
     # 构造历史对话文本
     history_text = ""
     for msg in history:
         history_text += f"{msg.get('role', 'unknown')}: {msg.get('text', '')}\n"
-    
+
     logger.info(f"Step 3: 历史上下文构建完成，长度: {len(history_text)} 字符")
 
     # 2. 加载提示词
@@ -61,15 +60,15 @@ def step_3_extract_info(query: str, history: List[Dict]) -> Dict:
         # 清理 Markdown 代码块
         if content.startswith("```json"):
             content = content.replace("```json", "").replace("```", "")
-        
+
         result = json.loads(content)
-        
+
         # 健壮性检查
         if "item_names" not in result:
             result["item_names"] = []
         if "rewritten_query" not in result:
             result["rewritten_query"] = query
-            
+
         logger.info(f"Step 3: 提取结果解析成功 - 商品名: {result['item_names']}, 重写问题: {result['rewritten_query']}")
         return result
 
@@ -84,7 +83,7 @@ def step_4_vectorize_and_query(item_names: List[str]) -> List[Dict]:
     """
     logger.info(f"Step 4: 开始向量化检索，目标商品: {item_names}")
     results = []
-    
+
     client = get_milvus_client()
     if not client:
         logger.error("Step 4: 无法连接到 Milvus")
@@ -118,7 +117,7 @@ def step_4_vectorize_and_query(item_names: List[str]) -> List[Dict]:
                     client=client,
                     collection_name=collection_name,
                     reqs=reqs,
-                    ranker_weights=(0.8, 0.2), 
+                    ranker_weights=(0.8, 0.2),
                     limit=5,
                     norm_score=True,
                     output_fields=["item_name"]
@@ -130,7 +129,7 @@ def step_4_vectorize_and_query(item_names: List[str]) -> List[Dict]:
                         entity = hit.get("entity") or {}
                         item_name = entity.get("item_name")
                         score = hit.get("distance")
-                        
+
                         if item_name:
                             matches.append({
                                 "item_name": item_name,
@@ -159,21 +158,21 @@ def step_5_align_item_names(query_results: List[Dict]) -> Dict:
     根据 Milvus 搜索评分，对齐商品名，生成「确认商品名」和「候选商品名」
     """
     logger.info("Step 5: 开始对齐商品名 (Score Analysis)")
-    
+
     confirmed_item_names = []
     options = []
 
     for res in query_results:
         extracted_name = res.get("extracted_name", "").strip()
         matches = res.get("matches", []) or []
-        
+
         if not matches:
             logger.info(f"Step 5: '{extracted_name}' 无匹配结果")
             continue
 
         # 按分数降序
         matches.sort(key=lambda x: x.get("score", 0), reverse=True)
-        
+
         # 打印详细评分日志辅助调试
         top_matches_log = ", ".join([f"{m['item_name']}({m['score']:.3f})" for m in matches[:3]])
         logger.info(f"Step 5: '{extracted_name}' Top匹配: {top_matches_log}")
@@ -199,7 +198,7 @@ def step_5_align_item_names(query_results: List[Dict]) -> Dict:
                         picked = m
                         logger.info(f"Step 5: 规则B命中 (Exact Match in High) -> 确认: {picked.get('item_name')}")
                         break
-            
+
             # 否则取最高分
             if not picked:
                 picked = high[0]
@@ -214,8 +213,8 @@ def step_5_align_item_names(query_results: List[Dict]) -> Dict:
             options.extend(current_options)
             logger.info(f"Step 5: 规则C命中 (Mid Confidence) -> 添加候选: {current_options}")
             continue
-        
-        logger.info(f"Step 5: 规则D命中 (Low Confidence) -> 无匹配")
+
+        logger.info("Step 5: 规则D命中 (Low Confidence) -> 无匹配")
 
     result = {
         "confirmed_item_names": list(set(confirmed_item_names)),
@@ -230,7 +229,7 @@ def step_6_check_confirmation(state: Dict, align_result: Dict, session_id: str, 
     检查对齐结果，更新 State
     """
     logger.info("Step 6: 检查确认状态并更新 State")
-    
+
     # 健壮性处理
     if align_result is None:
         align_result = {}
@@ -241,7 +240,7 @@ def step_6_check_confirmation(state: Dict, align_result: Dict, session_id: str, 
     # 分支 A: 有确认商品名
     if confirmed:
         logger.info(f"Step 6: [分支A] 存在确认商品名: {confirmed}")
-        
+
         # 更新历史消息中的 item_names
         ids_to_update = []
         for msg in history:
@@ -249,7 +248,7 @@ def step_6_check_confirmation(state: Dict, align_result: Dict, session_id: str, 
                 mid = msg.get("_id")
                 if mid:
                     ids_to_update.append(str(mid))
-        
+
         if ids_to_update:
             logger.info(f"Step 6: 更新 {len(ids_to_update)} 条历史消息的关联商品名")
             update_message_item_names(ids_to_update, confirmed)
@@ -281,7 +280,7 @@ def step_7_write_history(state: Dict, session_id: str, history: List[Dict], rewr
     写入最终历史记录
     """
     logger.info("Step 7: 写入会话历史")
-    
+
     # 如果有助手回答（分支 B/C），写入助手消息
     if state.get("answer"):
         logger.info("Step 7: 保存助手回答")
@@ -312,7 +311,7 @@ def node_item_name_confirm(state: QueryGraphState) -> QueryGraphState:
     主节点函数：商品名称确认流程
     """
     logger.info(">>> node_item_name_confirm: 开始处理")
-    
+
     session_id = state["session_id"]
     original_query = state.get("original_query", "")
     is_stream = state.get("is_stream", False)
@@ -332,7 +331,7 @@ def node_item_name_confirm(state: QueryGraphState) -> QueryGraphState:
     extract_res = step_3_extract_info(original_query, history)
     item_names = extract_res.get("item_names", [])
     rewritten_query = extract_res.get("rewritten_query", original_query)
-    
+
     # 更新 State 中的 rewrite_query
     state["rewritten_query"] = rewritten_query
 
@@ -356,7 +355,7 @@ def node_item_name_confirm(state: QueryGraphState) -> QueryGraphState:
 
     # 标记任务完成
     add_done_task(session_id, "node_item_name_confirm", is_stream)
-    
+
     logger.info(f"Node: 处理结束, Final State Item Names: {final_state.get('item_names')}")
     return final_state
 
@@ -366,7 +365,7 @@ if __name__ == "__main__":
     print("\n" + "="*50)
     print(">>> 启动 node_item_name_confirm 本地测试")
     print("="*50)
-    
+
     # 模拟输入状态
     mock_state = {
         "session_id": "test_debug_session_001",
@@ -378,7 +377,7 @@ if __name__ == "__main__":
     try:
         # 运行节点
         result = node_item_name_confirm(mock_state)
-        
+
         print("\n" + "="*50)
         print(">>> 测试结果摘要:")
         print(f"Rewritten Query: {result.get('rewritten_query')}")

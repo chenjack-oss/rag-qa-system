@@ -1,6 +1,7 @@
 # 导入核心依赖：数据类、环境变量读取、路径处理
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
+
 from dotenv import load_dotenv
 
 # 提前加载.env配置文件（保持和原代码一致，只需执行一次）

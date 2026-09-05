@@ -1,10 +1,14 @@
+import base64
 import os
 import re
 import sys
-import base64
+from collections import deque
 from pathlib import Path
 from typing import Dict, List, Tuple
-from collections import deque
+
+# LangChain多模态依赖（消息构造+异常捕获）
+from langchain.messages import HumanMessage
+from langchain_core.exceptions import LangChainException
 
 # MinIO相关依赖
 from minio import Minio
@@ -12,22 +16,24 @@ from minio.deleteobjects import DeleteObject
 
 # 【核心改造1：移除原生OpenAI，导入LangChain工具类和多模态消息模块】
 from app.clients.minio_utils import get_minio_client
-from app.import_process.agent.state import ImportGraphState
-from app.utils.task_utils import add_running_task
-# LLM客户端工具类（核心复用，替换原生OpenAI调用）
-from app.lm.lm_utils import get_llm_client
-# LangChain多模态依赖（消息构造+异常捕获）
-from langchain.messages import HumanMessage
-from langchain_core.exceptions import LangChainException
+from app.conf.lm_config import lm_config
+
 # 项目配置
 from app.conf.minio_config import minio_config
-from app.conf.lm_config import lm_config
-# 项目日志工具（统一使用）
-from app.core.logger import logger
-# api访问限速工具
-from app.utils.rate_limit_utils import apply_api_rate_limit
+
 # 提示词加载工具
 from app.core.load_prompt import load_prompt
+
+# 项目日志工具（统一使用）
+from app.core.logger import logger
+from app.import_process.agent.state import ImportGraphState
+
+# LLM客户端工具类（核心复用，替换原生OpenAI调用）
+from app.lm.lm_utils import get_llm_client
+
+# api访问限速工具
+from app.utils.rate_limit_utils import apply_api_rate_limit
+from app.utils.task_utils import add_running_task
 
 # MinIO支持的图片格式集合（小写后缀，统一匹配标准）
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
@@ -430,7 +436,7 @@ def node_md_img(state: ImportGraphState) -> ImportGraphState:
     if not minio_client:
         logger.warning("MinIO客户端初始化失败，已跳过图片处理全流程")
         return state
-    
+
     # 步骤2：扫描并筛选MD中引用的支持格式图片
     # (image_file, img_path, context_list[0])
     targets = step_2_scan_images(md_content, images_dir)

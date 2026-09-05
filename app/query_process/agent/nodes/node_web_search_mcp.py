@@ -1,10 +1,13 @@
-import sys
-import json
 import asyncio
-from app.utils.task_utils import add_done_task, add_running_task
-from app.conf.bailian_mcp_config import mcp_config
+import json
+import sys
+
 from agents.mcp import MCPServerSse
+
+from app.conf.bailian_mcp_config import mcp_config
 from app.core.logger import logger
+from app.utils.task_utils import add_done_task, add_running_task
+
 
 async def mcp_call(query):
     """
@@ -15,7 +18,7 @@ async def mcp_call(query):
     :param query: 搜索查询词（通常是经过改写后的精准Query）
     :return: MCP返回的原始结果对象 (包含 content, isError 等字段)
     """
-    
+
     # ==================================================================================
     # 初始化百炼MCP SSE客户端
     # ----------------------------------------------------------------------------------
@@ -44,22 +47,22 @@ async def mcp_call(query):
         logger.info(f"[MCP] 正在连接百炼 WebSearch 服务: {mcp_config.mcp_base_url}")
         # 建立与MCP服务的SSE连接（异步方法，需await）
         await search_mcp.connect()
-        
+
         logger.info(f"[MCP] 连接成功，正在调用工具 'bailian_web_search' 查询: {query}")
         # 调用百炼MCP的搜索工具（核心步骤）
         # tool_name: "bailian_web_search" 是百炼官方定义的工具名称
         # arguments: 工具所需的参数，这里需要 "query" (查询词) 和 "count" (返回数量)
         result = await search_mcp.call_tool(
-            tool_name="bailian_web_search", 
+            tool_name="bailian_web_search",
             arguments={"query": query, "count": 5}
         )
         logger.info("[MCP] 工具调用完成，已获取返回结果")
         return result
-        
+
     except Exception as e:
         logger.error(f"[MCP] 调用过程中发生异常: {e}", exc_info=True)
         return None
-        
+
     finally:
         # 无论调用成功/失败，最终都关闭MCP连接（释放资源，异步方法）
         await search_mcp.cleanup()
@@ -75,7 +78,7 @@ def node_web_search_mcp(state):
     :return: 字典，包含结构化的搜索结果 web_search_docs，供后续节点使用
     """
     logger.info("---node_web_search_mcp 开始处理---")
-    
+
     # 1. 标记任务开始
     add_running_task(state["session_id"], sys._getframe().f_code.co_name, state.get("is_stream"))
 
@@ -84,15 +87,15 @@ def node_web_search_mcp(state):
     if not query:
         # 尝试回退到原始查询
         query = state.get("original_query", "")
-        
+
     docs = []
-    
+
     # 3. 执行搜索
     if query:
         try:
             # 同步-异步桥接：通过asyncio.run()执行异步的mcp_call函数
             logger.info(f"启动异步 MCP 调用，Query: {query}")
-            
+
             # ======================================================================
             # MCP 返回结果格式解析说明
             # ----------------------------------------------------------------------
@@ -115,7 +118,7 @@ def node_web_search_mcp(state):
             # """
             # ======================================================================
             result = asyncio.run(mcp_call(query))
-            
+
             # 4. 解析结果
             if result and not result.isError and result.content:
                 # 解析MCP原始结果：提取文本内容并转为JSON对象
@@ -124,21 +127,21 @@ def node_web_search_mcp(state):
                 try:
                     data = json.loads(raw_text)
                     pages = data.get("pages") or []
-                    
+
                     logger.info(f"MCP 返回原始页面数量: {len(pages)}")
-                    
+
                     # 遍历结果，统一封装为结构化格式
                     for item in pages:
                         snippet = (item.get("snippet") or "").strip()
                         url = (item.get("url") or "").strip()
                         title = (item.get("title") or "").strip()
-                        
+
                         # 过滤无核心摘要的结果
                         if not snippet:
                             continue
-                            
+
                         docs.append({"title": title, "url": url, "snippet": snippet})
-                        
+
                 except json.JSONDecodeError:
                     logger.error(f"MCP 返回结果解析 JSON 失败: {raw_text[:100]}...")
             else:
@@ -148,7 +151,7 @@ def node_web_search_mcp(state):
                     logger.warning("MCP 返回结果为空或无效")
 
             logger.info(f"结构化搜索结果数量: {len(docs)}")
-            
+
         except Exception as e:
             logger.error(f"MCP 搜索节点执行异常: {e}", exc_info=True)
     else:
@@ -156,9 +159,9 @@ def node_web_search_mcp(state):
 
     # 5. 标记任务结束
     add_done_task(state["session_id"], sys._getframe().f_code.co_name, state.get("is_stream"))
-    
+
     logger.info("---node_web_search_mcp 处理结束---")
-    
+
     # 若有有效搜索结果，返回结果供后续节点使用；无则返回空字典
     if docs:
         return {"web_search_docs": docs}
@@ -170,7 +173,7 @@ if __name__ == '__main__':
     print("\n" + "="*50)
     print(">>> 启动 node_web_search_mcp 本地测试")
     print("="*50)
-    
+
     test_state = {
         "session_id": "test_mcp_session",
         "rewritten_query": "HAK 180 在出厂默认状态下，若想在纸张上只把烫金膜转印到顶部 50 mm–170 mm 的局部区域，应在操作面板上如何设置",
@@ -191,6 +194,6 @@ if __name__ == '__main__':
         else:
             print("未获取到搜索结果")
         print("="*50)
-        
+
     except Exception as e:
         logger.exception(f"测试运行期间发生未捕获异常: {e}")

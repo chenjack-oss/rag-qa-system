@@ -1,8 +1,9 @@
 # app/utils/path_utils.py
-from pathlib import Path
-from dotenv import load_dotenv
 import os
 from pathlib import Path
+
+from dotenv import load_dotenv
+
 
 def get_path_dir(ps:int = 0)->Path:
     """

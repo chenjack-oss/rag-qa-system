@@ -1,14 +1,16 @@
-from langgraph.graph import StateGraph, END
-from app.query_process.agent.state import QueryGraphState
+from langgraph.graph import END, StateGraph
+
+from app.query_process.agent.nodes.node_answer_output import node_answer_output
+
 # 导入所有节点函数
 from app.query_process.agent.nodes.node_item_name_confirm import node_item_name_confirm
 from app.query_process.agent.nodes.node_query_kg import node_query_kg
-from app.query_process.agent.nodes.node_answer_output import node_answer_output
 from app.query_process.agent.nodes.node_rerank import node_rerank
 from app.query_process.agent.nodes.node_rrf import node_rrf
 from app.query_process.agent.nodes.node_search_embedding import node_search_embedding
 from app.query_process.agent.nodes.node_search_embedding_hyde import node_search_embedding_hyde
 from app.query_process.agent.nodes.node_web_search_mcp import node_web_search_mcp
+from app.query_process.agent.state import QueryGraphState
 
 # 初始化状态图
 builder = StateGraph(QueryGraphState)
