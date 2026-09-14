@@ -1,7 +1,6 @@
 import sys
 
 from app.core.logger import logger
-from app.lm.reranker_utils import get_reranker_model
 from app.utils.task_utils import *
 
 # -----------------------------
@@ -128,6 +127,11 @@ def step_2_rerank_docs(state, doc_items):
     # 初始化重排序模型（这里以使用 BGE 重排序模型为例）
     texts = [x["text"] for x in doc_items]
     try:
+        # 延迟导入：FlagEmbedding 会级联加载 torch 等重量级依赖。
+        # 放在函数内可让纯函数（step_1_merge_docs / step_3_topk）在轻量测试环境
+        # （CI 仅安装 pytest/numpy/loguru/fastapi）下被独立验证，同时避免服务冷启动变慢。
+        from app.lm.reranker_utils import get_reranker_model
+
         reranker = get_reranker_model()
 
         # 构建查询-文档对（必须是 str）

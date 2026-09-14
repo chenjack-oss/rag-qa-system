@@ -3,7 +3,7 @@
 RRF 公式: score(d) = Σ_source weight * 1 / (k + rank_source(d))
 """
 
-from app.query_process.agent.nodes.node_rrf import reciprocal_rank_fusion, _as_entity_list
+from app.query_process.agent.nodes.node_rrf import _as_entity_list, reciprocal_rank_fusion
 
 
 def _doc(chunk_id, content="c"):
