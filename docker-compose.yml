@@ -1,0 +1,112 @@
+name: rag-qa-system
+
+services:
+  # ---------- 基础设施 ----------
+  milvus:
+    image: milvusdb/milvus:v2.4.15
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_USE_EMBED: "true"
+      COMMON_STORAGETYPE: local
+    volumes:
+      - milvus_data:/var/lib/milvus
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9091/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  neo4j:
+    image: neo4j:5-community
+    environment:
+      NEO4J_AUTH: neo4j/change-me   # 与 .env 的 NEO4J_PASSWORD 保持一致
+    volumes:
+      - neo4j_data:/data
+    ports:
+      - "7474:7474"   # 浏览器管理页
+      - "7687:7687"   # Bolt
+
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  # ---------- 应用 ----------
+  query-service:
+    build: .
+    env_file: .env
+    environment:
+      # 容器网络内使用服务名访问依赖（覆盖 .env 中的外部地址）
+      MILVUS_URL: http://milvus:19530
+      NEO4J_URI: bolt://neo4j:7687
+      MONGO_URL: mongodb://mongo:27017
+      MINIO_ENDPOINT: minio:9000
+    volumes:
+      - models_cache:/app/modelscope_cache   # BGE-M3 / reranker 模型缓存持久化
+      - hf_cache:/app/huggingface_cache
+      - ./logs:/app/logs
+      # 评测采集输出（设置 EVAL_DUMP_PATH 时生效）
+      - ./evaluation/dumps:/data/dumps
+    ports:
+      - "8001:8001"
+    depends_on:
+      milvus:
+        condition: service_healthy
+      neo4j:
+        condition: service_started
+      mongo:
+        condition: service_started
+      minio:
+        condition: service_started
+    restart: unless-stopped
+
+  import-service:
+    build: .
+    env_file: .env
+    environment:
+      MILVUS_URL: http://milvus:19530
+      NEO4J_URI: bolt://neo4j:7687
+      MONGO_URL: mongodb://mongo:27017
+      MINIO_ENDPOINT: minio:9000
+    volumes:
+      - models_cache:/app/modelscope_cache
+      - hf_cache:/app/huggingface_cache
+      - ./logs:/app/logs
+    command: ["uv", "run", "uvicorn", "app.import_process.api.file_import_service:app", "--host", "0.0.0.0", "--port", "8002"]
+    ports:
+      - "8002:8002"
+    depends_on:
+      milvus:
+        condition: service_healthy
+      neo4j:
+        condition: service_started
+      mongo:
+        condition: service_started
+      minio:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  milvus_data:
+  neo4j_data:
+  mongo_data:
+  minio_data:
+  models_cache:
+  hf_cache:
