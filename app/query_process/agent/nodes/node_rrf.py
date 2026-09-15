@@ -2,6 +2,7 @@ import sys
 from typing import Any, Dict, List
 
 from app.core.logger import logger
+from app.utils.eval_dump_utils import should_use_single_source
 from app.utils.task_utils import add_done_task, add_running_task
 
 
@@ -170,10 +171,16 @@ def node_rrf(state):
 
     # 第二步：为不同来源设置权重
     # 当前策略：两路召回权重相等，均为 1.0
-    source_weights = [
-        (embedding_chunks, 1.0),
-        (hyde_embedding_chunks, 1.0)
-    ]
+    # 消融开关（仅评测采集期间生效）：no_rrf 模式退化为仅稠密向量主路，
+    # 用于量化 RRF 多路融合对最终指标的真实贡献
+    if should_use_single_source():
+        logger.info("RRF 节点: EVAL_ABLATION_MODE=no_rrf，退化为仅 Embedding 主路")
+        source_weights = [(embedding_chunks, 1.0)]
+    else:
+        source_weights = [
+            (embedding_chunks, 1.0),
+            (hyde_embedding_chunks, 1.0)
+        ]
 
     # 第三步：应用带权重的RRF计算最终得分
     # k=60 是 RRF 算法的经典常数，max_results=10 限制最终召回数量

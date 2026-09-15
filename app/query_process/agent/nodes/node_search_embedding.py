@@ -6,6 +6,7 @@ from dotenv import find_dotenv, load_dotenv
 from app.clients.milvus_utils import create_hybrid_search_requests, get_milvus_client, hybrid_search
 from app.core.logger import logger
 from app.lm.embedding_utils import generate_embeddings
+from app.utils.eval_dump_utils import should_zero_sparse_weight
 from app.utils.task_utils import add_done_task, add_running_task
 
 load_dotenv(find_dotenv())
@@ -83,7 +84,9 @@ def node_search_embedding(state):
         client=client,
         collection_name=collection_name,  # 检索的目标集合名（文本片段向量集合）
         reqs=reqs,  # 构造好的混合搜索请求对象（稠密+稀疏）
-        ranker_weights=(0.8, 0.2),  # 稠/稀疏向量评分权重配比，各占50%（提升关键词精确匹配）
+        # 稠/稀疏向量评分权重配比 0.8/0.2（稀疏负责型号编码等精准匹配）
+        # 消融开关（仅评测采集期间生效）：no_sparse 模式将稀疏权重置 0，量化稀疏向量的贡献
+        ranker_weights=(1.0, 0.0) if should_zero_sparse_weight() else (0.8, 0.2),
         norm_score=True,  # 开启评分归一化，将距离值转为0-1区间的相似度评分
         limit=5,  # 最终返回的TOP5相似度最高结果
         output_fields=["chunk_id", "content", "item_name"]  # 指定返回的业务字段

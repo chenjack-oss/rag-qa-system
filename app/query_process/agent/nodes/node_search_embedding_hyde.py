@@ -8,6 +8,7 @@ from app.core.load_prompt import load_prompt
 from app.core.logger import logger
 from app.lm.embedding_utils import *
 from app.lm.lm_utils import *
+from app.utils.eval_dump_utils import should_skip_hyde
 from app.utils.task_utils import add_done_task, add_running_task
 
 load_dotenv(find_dotenv())
@@ -158,6 +159,13 @@ def node_search_embedding_hyde(state):
     logger.info("---HyDE (假设文档检索) 节点开始处理---")
     # 记录任务开始状态
     add_running_task(state["session_id"], sys._getframe().f_code.co_name, state.get("is_stream"))
+
+    # 消融开关（仅评测采集期间生效，默认关闭不影响线上行为）：
+    # no_hyde 模式跳过整条 HyDE 路，RRF 自然退化为单路+联网搜索
+    if should_skip_hyde():
+        logger.info("HyDE 节点: EVAL_ABLATION_MODE=no_hyde，跳过 HyDE 检索路")
+        add_done_task(state["session_id"], sys._getframe().f_code.co_name, state.get("is_stream"))
+        return {"hyde_embedding_chunks": [], "hyde_doc": ""}
 
     # 1. 参数提取与校验
     # 优先使用改写后的查询，若无则降级使用原始查询

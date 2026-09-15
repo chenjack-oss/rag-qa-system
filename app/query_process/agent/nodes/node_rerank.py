@@ -1,6 +1,7 @@
 import sys
 
 from app.core.logger import logger
+from app.utils.eval_dump_utils import should_skip_rerank
 from app.utils.task_utils import *
 
 # -----------------------------
@@ -258,10 +259,28 @@ def node_rerank(state):
 
   # 阶段一：合并文档
   doc_items = step_1_merge_docs(state)
-  # 阶段二：对文档进行重排序
-  scored_docs = step_2_rerank_docs(state, doc_items)
-  # 阶段三：动态 TopK
-  topk_docs = step_3_topk(scored_docs)
+
+  # 消融开关（仅评测采集期间生效）：no_rerank 模式跳过 FlagReranker 精排，
+  # 保留 RRF 融合顺序（score 置 0），用于量化精排对最终指标的真实贡献
+  if should_skip_rerank():
+      logger.info("Rerank 节点: EVAL_ABLATION_MODE=no_rerank，跳过精排，保留融合顺序")
+      topk_docs = [
+          {
+              "text": x.get("text"),
+              "score": 0.0,
+              "source": x.get("source") or "",
+              "chunk_id": x.get("chunk_id"),
+              "doc_id": x.get("doc_id"),
+              "url": x.get("url") or "",
+              "title": x.get("title") or "",
+          }
+          for x in doc_items
+      ]
+  else:
+      # 阶段二：对文档进行重排序
+      scored_docs = step_2_rerank_docs(state, doc_items)
+      # 阶段三：动态 TopK
+      topk_docs = step_3_topk(scored_docs)
 
   logger.info(f"Rerank 节点处理结束, 最终输出 {len(topk_docs)} 条文档")
 

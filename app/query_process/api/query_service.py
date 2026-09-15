@@ -1,3 +1,4 @@
+import time
 import uuid
 from pathlib import Path
 
@@ -9,6 +10,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.clients.mongo_history_utils import *
 from app.query_process.agent.main_graph import query_app
+from app.utils.eval_dump_utils import append_dump_record, build_dump_record
 from app.utils.sse_utils import SSEEvent, create_sse_queue, sse_generator
 from app.utils.task_utils import *
 
@@ -61,9 +63,16 @@ def run_query_graph(session_id: str, user_query: str, is_stream: bool = True):
     print(f"开始流程图处理...{session_id} {user_query} {is_stream}")
 
     default_state = {"original_query": user_query, "session_id": session_id, "is_stream": is_stream}
+    start_ts = time.perf_counter()
     try:
         # 后期运行
-        query_app.invoke(default_state)
+        final_state = query_app.invoke(default_state)
+        # 评测采集（旁路）：设置 EVAL_DUMP_PATH 环境变量后生效，
+        # 把本次检索 TopK 与端到端耗时追加写入 jsonl，供离线评测/消融分析
+        elapsed_ms = (time.perf_counter() - start_ts) * 1000
+        record = build_dump_record(session_id, user_query, final_state.get("reranked_docs") or [], elapsed_ms)
+        if record:
+            append_dump_record(record)
         # 整体任务就更新完了！ 接下来就是数据的更新了！
         update_task_status(session_id, TASK_STATUS_COMPLETED, is_stream)
     except Exception as e:

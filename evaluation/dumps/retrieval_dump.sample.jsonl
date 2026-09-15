@@ -1,0 +1,40 @@
+{"qid": "q001", "query": "HAK 180 烫金机的最大加热温度是多少", "config": "full", "ranked_chunk_ids": ["c_0001", "c_0002", "c_0013", "c_0006", "c_0011"], "latency_ms": 8600, "retrieved_at": "SAMPLE"}
+{"qid": "q002", "query": "烫金机温度传感器坏了怎么更换", "config": "full", "ranked_chunk_ids": ["c_0003", "c_0008", "c_0007", "c_0013", "c_0005"], "latency_ms": 8600, "retrieved_at": "SAMPLE"}
+{"qid": "q003", "query": "设备开机后显示屏不亮是什么问题", "config": "full", "ranked_chunk_ids": ["c_0004", "c_0005", "c_0010", "c_0007", "c_0002"], "latency_ms": 8600, "retrieved_at": "SAMPLE"}
+{"qid": "q004", "query": "HAK 180 的额定电压和功率参数", "config": "full", "ranked_chunk_ids": ["c_0006", "c_0002", "c_0001", "c_0011", "c_0009"], "latency_ms": 8600, "retrieved_at": "SAMPLE"}
+{"qid": "q005", "query": "怎么清洁烫金头胶辊", "config": "full", "ranked_chunk_ids": ["c_0007", "c_0003", "c_0009", "c_0005", "c_0001"], "latency_ms": 8600, "retrieved_at": "SAMPLE"}
+{"qid": "q006", "query": "更换耗材后需要做哪些校准操作", "config": "full", "ranked_chunk_ids": ["c_0008", "c_0009", "c_0003", "c_0010", "c_0007"], "latency_ms": 8600, "retrieved_at": "SAMPLE"}
+{"qid": "q007", "query": "设备报错 E03 是什么故障", "config": "full", "ranked_chunk_ids": ["c_0010", "c_0004", "c_0005", "c_0013", "c_0006"], "latency_ms": 8600, "retrieved_at": "SAMPLE"}
+{"qid": "q008", "query": "烫金机的日常保养周期是多久", "config": "full", "ranked_chunk_ids": ["c_0009", "c_0011", "c_0007", "c_0008", "c_0003"], "latency_ms": 8600, "retrieved_at": "SAMPLE"}
+{"qid": "q009", "query": "安全操作需要注意哪些事项", "config": "full", "ranked_chunk_ids": ["c_0012", "c_0009", "c_0007", "c_0004", "c_0008"], "latency_ms": 8600, "retrieved_at": "SAMPLE"}
+{"qid": "q010", "query": "烫金压力怎么调节", "config": "full", "ranked_chunk_ids": ["c_0013", "c_0001", "c_0002", "c_0007", "c_0010"], "latency_ms": 8600, "retrieved_at": "SAMPLE"}
+{"qid": "q001", "query": "HAK 180 烫金机的最大加热温度是多少", "config": "no_rrf", "ranked_chunk_ids": ["c_0002", "c_0001", "c_0013", "c_0006", "c_0011"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q002", "query": "烫金机温度传感器坏了怎么更换", "config": "no_rrf", "ranked_chunk_ids": ["c_0003", "c_0008", "c_0007", "c_0013", "c_0005"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q003", "query": "设备开机后显示屏不亮是什么问题", "config": "no_rrf", "ranked_chunk_ids": ["c_0005", "c_0010", "c_0007", "c_0002", "c_0012"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q004", "query": "HAK 180 的额定电压和功率参数", "config": "no_rrf", "ranked_chunk_ids": ["c_0002", "c_0006", "c_0001", "c_0011", "c_0009"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q005", "query": "怎么清洁烫金头胶辊", "config": "no_rrf", "ranked_chunk_ids": ["c_0007", "c_0003", "c_0009", "c_0005", "c_0001"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q006", "query": "更换耗材后需要做哪些校准操作", "config": "no_rrf", "ranked_chunk_ids": ["c_0008", "c_0003", "c_0009", "c_0010", "c_0007"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q007", "query": "设备报错 E03 是什么故障", "config": "no_rrf", "ranked_chunk_ids": ["c_0010", "c_0004", "c_0005", "c_0013", "c_0006"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q008", "query": "烫金机的日常保养周期是多久", "config": "no_rrf", "ranked_chunk_ids": ["c_0009", "c_0007", "c_0008", "c_0003", "c_0011"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q009", "query": "安全操作需要注意哪些事项", "config": "no_rrf", "ranked_chunk_ids": ["c_0009", "c_0007", "c_0004", "c_0008", "c_0012"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q010", "query": "烫金压力怎么调节", "config": "no_rrf", "ranked_chunk_ids": ["c_0001", "c_0013", "c_0002", "c_0007", "c_0010"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q001", "query": "HAK 180 烫金机的最大加热温度是多少", "config": "no_rerank", "ranked_chunk_ids": ["c_0013", "c_0001", "c_0002", "c_0006", "c_0011"], "latency_ms": 5200, "retrieved_at": "SAMPLE"}
+{"qid": "q002", "query": "烫金机温度传感器坏了怎么更换", "config": "no_rerank", "ranked_chunk_ids": ["c_0008", "c_0003", "c_0007", "c_0013", "c_0005"], "latency_ms": 5200, "retrieved_at": "SAMPLE"}
+{"qid": "q003", "query": "设备开机后显示屏不亮是什么问题", "config": "no_rerank", "ranked_chunk_ids": ["c_0010", "c_0004", "c_0005", "c_0007", "c_0002"], "latency_ms": 5200, "retrieved_at": "SAMPLE"}
+{"qid": "q004", "query": "HAK 180 的额定电压和功率参数", "config": "no_rerank", "ranked_chunk_ids": ["c_0001", "c_0006", "c_0002", "c_0011", "c_0009"], "latency_ms": 5200, "retrieved_at": "SAMPLE"}
+{"qid": "q005", "query": "怎么清洁烫金头胶辊", "config": "no_rerank", "ranked_chunk_ids": ["c_0003", "c_0007", "c_0009", "c_0005", "c_0001"], "latency_ms": 5200, "retrieved_at": "SAMPLE"}
+{"qid": "q006", "query": "更换耗材后需要做哪些校准操作", "config": "no_rerank", "ranked_chunk_ids": ["c_0003", "c_0008", "c_0009", "c_0010", "c_0007"], "latency_ms": 5200, "retrieved_at": "SAMPLE"}
+{"qid": "q007", "query": "设备报错 E03 是什么故障", "config": "no_rerank", "ranked_chunk_ids": ["c_0004", "c_0010", "c_0005", "c_0013", "c_0006"], "latency_ms": 5200, "retrieved_at": "SAMPLE"}
+{"qid": "q008", "query": "烫金机的日常保养周期是多久", "config": "no_rerank", "ranked_chunk_ids": ["c_0011", "c_0009", "c_0007", "c_0008", "c_0003"], "latency_ms": 5200, "retrieved_at": "SAMPLE"}
+{"qid": "q009", "query": "安全操作需要注意哪些事项", "config": "no_rerank", "ranked_chunk_ids": ["c_0009", "c_0012", "c_0007", "c_0004", "c_0008"], "latency_ms": 5200, "retrieved_at": "SAMPLE"}
+{"qid": "q010", "query": "烫金压力怎么调节", "config": "no_rerank", "ranked_chunk_ids": ["c_0002", "c_0013", "c_0001", "c_0007", "c_0010"], "latency_ms": 5200, "retrieved_at": "SAMPLE"}
+{"qid": "q001", "query": "HAK 180 烫金机的最大加热温度是多少", "config": "no_hyde", "ranked_chunk_ids": ["c_0001", "c_0002", "c_0013", "c_0006", "c_0011"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q002", "query": "烫金机温度传感器坏了怎么更换", "config": "no_hyde", "ranked_chunk_ids": ["c_0003", "c_0008", "c_0013", "c_0005", "c_0011"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q003", "query": "设备开机后显示屏不亮是什么问题", "config": "no_hyde", "ranked_chunk_ids": ["c_0010", "c_0002", "c_0013", "c_0006", "c_0011"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q004", "query": "HAK 180 的额定电压和功率参数", "config": "no_hyde", "ranked_chunk_ids": ["c_0006", "c_0002", "c_0001", "c_0011", "c_0009"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q005", "query": "怎么清洁烫金头胶辊", "config": "no_hyde", "ranked_chunk_ids": ["c_0007", "c_0003", "c_0009", "c_0005", "c_0001"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q006", "query": "更换耗材后需要做哪些校准操作", "config": "no_hyde", "ranked_chunk_ids": ["c_0008", "c_0009", "c_0010", "c_0007", "c_0006"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q007", "query": "设备报错 E03 是什么故障", "config": "no_hyde", "ranked_chunk_ids": ["c_0010", "c_0004", "c_0005", "c_0013", "c_0006"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q008", "query": "烫金机的日常保养周期是多久", "config": "no_hyde", "ranked_chunk_ids": ["c_0009", "c_0011", "c_0007", "c_0008", "c_0003"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q009", "query": "安全操作需要注意哪些事项", "config": "no_hyde", "ranked_chunk_ids": ["c_0009", "c_0007", "c_0004", "c_0008", "c_0003"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
+{"qid": "q010", "query": "烫金压力怎么调节", "config": "no_hyde", "ranked_chunk_ids": ["c_0013", "c_0001", "c_0002", "c_0007", "c_0010"], "latency_ms": 6800, "retrieved_at": "SAMPLE"}
