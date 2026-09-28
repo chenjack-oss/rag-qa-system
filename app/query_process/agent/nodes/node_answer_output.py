@@ -1,10 +1,8 @@
 import re
 import sys
 
-from app.clients.mongo_history_utils import save_chat_message
 from app.core.load_prompt import load_prompt
 from app.core.logger import logger
-from app.lm.lm_utils import get_llm_client
 from app.query_process.agent.state import QueryGraphState
 from app.utils.sse_utils import SSEEvent, push_to_session
 from app.utils.task_utils import add_done_task, add_running_task, set_task_result
@@ -147,6 +145,10 @@ def step_3_generate_response(state: QueryGraphState, prompt: str) -> QueryGraphS
 
   # 获取 LLM 客户端
   # 注意：这里我们使用统一的 get_llm_client 获取实例
+  # 延迟导入：langchain 属重依赖，仅在实际调用 LLM 时才加载，
+  # 使本模块可在未安装 langchain 的轻量环境（如 CI 单测）中被导入。
+  from app.lm.lm_utils import get_llm_client
+
   llm = get_llm_client()
 
   # 判断是否需要流式输出
@@ -267,7 +269,11 @@ def step_4_write_history(state: QueryGraphState, image_urls = None) -> QueryGrap
 
   try:
     if answer:
-       save_chat_message(
+      # 延迟导入：pymongo 仅在真正写历史时才加载，
+      # 使本模块可在未安装 pymongo 的轻量环境（如 CI 单测）中被导入。
+      from app.clients.mongo_history_utils import save_chat_message
+
+      save_chat_message(
         session_id=session_id,
         role="assistant",
         text=answer,
