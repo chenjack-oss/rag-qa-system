@@ -3,16 +3,16 @@ import os
 from typing import Dict, List
 
 from dotenv import find_dotenv, load_dotenv
-from langchain_core.messages import HumanMessage, SystemMessage
 
-from app.clients.milvus_utils import create_hybrid_search_requests, get_milvus_client, hybrid_search
-from app.clients.mongo_history_utils import get_recent_messages, save_chat_message, update_message_item_names
 from app.core.load_prompt import load_prompt
 from app.core.logger import logger
-from app.lm.embedding_utils import generate_embeddings
-from app.lm.lm_utils import get_llm_client
 from app.query_process.agent.state import QueryGraphState
 from app.utils.task_utils import add_done_task, add_running_task
+
+# 说明：本模块的重依赖（langchain_core / pymilvus / pymongo / FlagEmbedding-torch）
+# 全部下沉到实际使用它们的函数内部做延迟导入，使模块可在不安装这些重型依赖的
+# 轻量环境（如 CI 的单元测试 job）中被导入，供纯逻辑分支单独测试。
+# 与 node_answer_output 的改造方式保持一致。
 
 load_dotenv(find_dotenv())
 
@@ -25,6 +25,11 @@ def step_3_extract_info(query: str, history: List[Dict]) -> Dict:
     :param history: 列表[字典] - 近期会话历史
     :return: 字典 - 提取结果，格式：{"item_names": [], "rewritten_query": ""}
     """
+    # 延迟导入：重依赖（langchain）仅在真正执行本步骤时才加载
+    from langchain_core.messages import HumanMessage, SystemMessage
+
+    from app.lm.lm_utils import get_llm_client
+
     logger.info("Step 3: 开始提取信息 (LLM)")
 
     # 1. 初始化准备
@@ -81,6 +86,10 @@ def step_4_vectorize_and_query(item_names: List[str]) -> List[Dict]:
     """
     对提取的 item_names 进行向量化并在 Milvus 中进行混合搜索
     """
+    # 延迟导入：重依赖（pymilvus / FlagEmbedding + torch）仅在真正检索时才加载
+    from app.clients.milvus_utils import create_hybrid_search_requests, get_milvus_client, hybrid_search
+    from app.lm.embedding_utils import generate_embeddings
+
     logger.info(f"Step 4: 开始向量化检索，目标商品: {item_names}")
     results = []
 
@@ -228,6 +237,9 @@ def step_6_check_confirmation(state: Dict, align_result: Dict, session_id: str, 
     """
     检查对齐结果，更新 State
     """
+    # 延迟导入：重依赖（pymongo）仅在需要回写历史消息时才加载
+    from app.clients.mongo_history_utils import update_message_item_names
+
     logger.info("Step 6: 检查确认状态并更新 State")
 
     # 健壮性处理
@@ -279,6 +291,9 @@ def step_7_write_history(state: Dict, session_id: str, history: List[Dict], rewr
     """
     写入最终历史记录
     """
+    # 延迟导入：重依赖（pymongo）仅在写库时才加载
+    from app.clients.mongo_history_utils import save_chat_message
+
     logger.info("Step 7: 写入会话历史")
 
     # 如果有助手回答（分支 B/C），写入助手消息
@@ -310,6 +325,9 @@ def node_item_name_confirm(state: QueryGraphState) -> QueryGraphState:
     """
     主节点函数：商品名称确认流程
     """
+    # 延迟导入：重依赖（pymongo）仅在读/写会话历史时才加载
+    from app.clients.mongo_history_utils import get_recent_messages, save_chat_message
+
     logger.info(">>> node_item_name_confirm: 开始处理")
 
     session_id = state["session_id"]
