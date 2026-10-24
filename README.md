@@ -9,6 +9,7 @@
 基于 LangGraph 构建的企业级知识库系统，覆盖「文档入库 → 多路检索 → 重排 → 生成」完整链路，支持 PDF/Word 等非结构化文档的解析、向量化、图谱建模与多路召回问答。
 
 > 📐 架构详解见 [docs/architecture.md](./docs/architecture.md)（含导入/检索双链路流程图与 RRF 公式）
+> 🧰 工程踩坑记录见 [docs/pitfalls.md](./docs/pitfalls.md)（CI 无 .env 注入、重依赖延迟导入、CI 等价自检法）
 
 ## 项目特性
 
@@ -51,7 +52,7 @@
 │   ├── tool/             # 模型下载等辅助工具
 │   └── utils/            # 通用工具（含评测采集/消融开关旁路）
 ├── evaluation/           # 评测体系（指标库 + 离线评测 + 消融实验 + 样例报告）
-├── docs/                 # 架构文档
+├── docs/                 # 架构文档与工程踩坑总结
 ├── prompts/              # 提示词模板
 ├── test/                 # 本地调试脚本
 ├── tests/                # 单元测试（pytest，CI 自动执行）
