@@ -1,0 +1,48 @@
+{
+  "judge": "rules",
+  "min_cover": 0.6,
+  "per_config": {
+    "baseline": {
+      "n": 10,
+      "n_claims": 10,
+      "faithfulness": 0.8,
+      "hallucination_rate": 0.2,
+      "relevance": 0.3311,
+      "correctness": 0.6767,
+      "exact_rate": 0.6,
+      "partial_rate": 0.0,
+      "wrong_rate": 0.3,
+      "no_golden_rate": 0.1,
+      "citation_rate": 0.9,
+      "uncited_rate": 0.1,
+      "p50_latency_ms": 5800.0,
+      "p95_latency_ms": 8565.5,
+      "avg_latency_ms": 6215.0,
+      "_worst_cases": [
+        {
+          "qid": "q003",
+          "faithfulness": 0.0,
+          "label": "wrong",
+          "uncited": false,
+          "reason": "无支撑句 1/1; correctness=wrong"
+        },
+        {
+          "qid": "q007",
+          "faithfulness": 0.0,
+          "label": "wrong",
+          "uncited": false,
+          "reason": "无支撑句 1/1; correctness=wrong"
+        },
+        {
+          "qid": "q010",
+          "faithfulness": 1.0,
+          "label": "wrong",
+          "uncited": false,
+          "reason": "correctness=wrong"
+        }
+      ],
+      "traceability": 1.0,
+      "_judge": "rules"
+    }
+  }
+}
