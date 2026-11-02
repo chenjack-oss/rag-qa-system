@@ -16,6 +16,7 @@
 """
 
 import argparse
+import json
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -39,6 +40,7 @@ def main():
     parser.add_argument("--dump", required=True, help="检索 dump jsonl 路径")
     parser.add_argument("--k", type=int, default=5, help="截断位置 K（默认 5）")
     parser.add_argument("--out", default="", help="报告输出路径（markdown）；为空则仅打印")
+    parser.add_argument("--metrics-json", default="", help="指标输出路径（json，供 compare_eval 做回归门禁）")
     parser.add_argument("--title", default="检索评测报告", help="报告标题")
     args = parser.parse_args()
 
@@ -61,6 +63,13 @@ def main():
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(report, encoding="utf-8")
         print(f"报告已写入: {out_path}")
+
+    if args.metrics_json:
+        json_path = Path(args.metrics_json)
+        json_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {"k": args.k, "per_config": per_config}
+        json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"指标已写入: {json_path}")
 
 
 if __name__ == "__main__":

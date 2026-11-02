@@ -26,6 +26,23 @@ jobs:
       - name: Run unit tests
         run: pytest tests/ -v
 
+      # 评测脚本是纯函数实现，不依赖 Milvus/LLM。这里跑一遍冒烟，
+      # 防止评测链路（生成层指标 / badcase 归因 / 回归门禁）随代码漂移失效。
+      - name: Evaluation tooling smoke test
+        run: |
+          python evaluation/run_gen_eval.py \
+            --answers evaluation/data/answers.sample.jsonl --metrics-json /tmp/gen.json > /dev/null
+          python evaluation/run_retrieval_eval.py \
+            --dataset evaluation/data/eval_dataset.sample.jsonl \
+            --dump evaluation/dumps/retrieval_dump.sample.jsonl \
+            --metrics-json /tmp/ret.json > /dev/null
+          python evaluation/compare_eval.py \
+            --baseline /tmp/ret.json --candidate /tmp/ret.json --fail-if-drop 0.02 > /dev/null
+          python evaluation/badcase_mining.py \
+            --dataset evaluation/data/eval_dataset.sample.jsonl \
+            --dump evaluation/dumps/retrieval_dump.sample.jsonl \
+            --answers evaluation/data/answers.sample.jsonl > /dev/null
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -39,4 +56,4 @@ jobs:
       - name: Lint with ruff
         run: |
           pip install ruff
-          ruff check app/ tests/
+          ruff check app/ tests/ evaluation/

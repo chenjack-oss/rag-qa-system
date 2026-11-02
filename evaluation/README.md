@@ -12,12 +12,17 @@
 
 ```
 evaluation/
-├── metrics.py                # 指标库（hit@k / recall@k / MRR / nDCG@k / 可溯源率）
-├── run_retrieval_eval.py     # 离线评测入口：标注集 + dump -> 指标报告
+├── metrics.py                # 检索层指标库（hit@k / recall@k / MRR / nDCG@k / 可溯源率）
+├── gen_metrics.py            # 生成层指标库（忠实度 / 相关性 / 正确性 / 引用 / 延迟分位）
+├── run_retrieval_eval.py     # 检索评测入口：标注集 + dump -> 指标报告
+├── run_gen_eval.py           # 生成评测入口：answers.jsonl -> 忠实度等指标报告
 ├── run_ablation.py           # 消融实验：多配置对比 + 相对 full 的 Δ 值
+├── badcase_mining.py         # badcase 自动归因：失败样本分类 + 建议排查层
+├── compare_eval.py           # 回归门禁：两次评测逐指标 Δ，跌破阈值 exit 1
 ├── dump_retrieval.py         # 标注集批量回放采集（调用在线服务）
 ├── make_sample_data.py       # 生成样例数据（演示格式用）
 ├── data/eval_dataset.sample.jsonl     # 标注集样例（10 条）
+├── data/answers.sample.jsonl          # 生成评测样例（10 条问答，含 2 条编造负例）
 ├── dumps/retrieval_dump.sample.jsonl  # 检索 dump 样例（4 配置 × 10 条）
 └── results/*.sample.md                # 样例报告（真实运行产出，数据为样例）
 ```
@@ -89,12 +94,68 @@ python evaluation/run_ablation.py --dataset <标注集> --dump <合并dump> --ou
 - **nDCG@k**：考虑位置衰减的整体排序质量
 - **答案可溯源率**（`answer_traceability_rate`）：答案引用的 chunk 是否全部在检索结果内，是幻觉监控的先行指标
 
-生成类指标（忠实度/答案相关性）需要 LLM-as-judge，计划在 `run_gen_eval.py` 中提供（依赖 API Key，不入 CI）。
+生成类指标（忠实度/答案相关性/正确性）由 `gen_metrics.py` + `run_gen_eval.py` 提供，见下一节。
+
+## 生成层评测（faithfulness / 相关性 / 正确性 / 引用）
+
+检索评测只能证明"对的 chunk 被召回"，证明不了"答案没编"。生成层评测独立成一套指标，**两层分开跑**，避免把召回问题误判成生成问题。
+
+```bash
+# 规则口径（离线、零依赖，默认）
+python evaluation/run_gen_eval.py --answers evaluation/data/answers.sample.jsonl \
+    --out evaluation/results/gen_eval_report.md --metrics-json evaluation/results/gen_eval.json
+
+# LLM-as-judge（沿用 app/lm/lm_utils.get_llm_client，需 .env 里的 OPENAI_*，仓库不落 key）
+python evaluation/run_gen_eval.py --answers ... --judge llm --out ...
+```
+
+**answers.jsonl 契约**（一行一次问答）：
+
+```json
+{"qid": "q001", "config": "baseline", "query": "HAK 180 的最大加热温度",
+ "answer": "最大加热温度为 200℃ [c_0001]。", "golden_answer": "200℃", "latency_ms": 8600,
+ "retrieved": [{"chunk_id": "c_0001", "text": "...加热温度上限 200℃..."}]}
+```
+
+| 指标 | 规则口径算法 | 说明 |
+|---|---|---|
+| `faithfulness` | 答案切句成 claim，每个 claim 抽关键要素（数字/型号/中文 bigram），在检索块中覆盖率 ≥ 0.6 记为有支撑 | 幻觉主指标，`hallucination_rate = 1 - faithfulness` |
+| `relevance` | query 去虚词后的 2-gram 在答案中的覆盖率 | 答非所问检测 |
+| `correctness` | 有标准答案：数字/型号全命中=exact(1.0)，覆盖 ≥0.5=partial(0.5)；纯文字标准答案按实义字符覆盖 ≥0.9=exact；无标准答案退化为与检索块的 3-gram Jaccard | 效果是否真的变好 |
+| `citation_rate` / `traceability` | `[c_xxx]` 标记落在检索结果内 / 全部引用均可回溯（复用 `answer_traceability_rate`） | 引用可信度 |
+| `uncited_rate` | 无任何引用标记的答案占比 | 引用缺失单列，不被合法率掩盖 |
+| `p50 / p95` | 线性插值分位数 | 效果-成本权衡，avg 会掩盖长尾 |
+
+**口径红线**：rules 与 llm 两套数字不可直接对比（规则偏保守、对同义改写不敏感）；报告会打印 `judge=` 与 degraded 数量，引用时必须带上。样例数字只用于演示格式，不得作为线上效果对外表述。
 
 ## badcase 闭环
 
-评测中每个 `qid` 的 dump 都保留了 `ranked_chunk_ids` 全序，可直接与标注对齐定位：
+```bash
+python evaluation/badcase_mining.py --dataset evaluation/data/eval_dataset.sample.jsonl \
+    --dump evaluation/dumps/retrieval_dump.sample.jsonl \
+    --answers evaluation/data/answers.sample.jsonl \
+    --out evaluation/results/badcase_report.md
+```
 
-- **hit@k 未命中的样本** → 检查召回层（过滤表达式 / 稀疏权重 / 切片质量）
-- **命中但排名靠后的样本** → 检查融合与精排层（RRF 权重 / reranker 分数分布）
-- **可溯源率低的样本** → 检查生成层 Prompt 约束与引用注入
+自动把失败样本分成四类并按严重度排序，每条给出**建议排查层**与判定依据：
+
+| 类型 | 判定 | 建议排查层 |
+|---|---|---|
+| `miss` | Top-K 内没有任何相关块 | 召回层（切片质量 / 稀疏权重 / 过滤表达式） |
+| `untraceable` | 答案引用的 chunk 不在检索结果内 | 生成层（引用注入与校验） |
+| `low_rank` | 相关块命中，但首个排名 > 3 | 精排层（reranker 分数分布 / RRF 权重） |
+| `no_citation` | 答案没有任何引用标记 | 生成层（Prompt 引用约束） |
+
+## 回归门禁
+
+评测不能只看一眼就过。`compare_eval.py` 把两次评测逐指标对比，跌破阈值直接 `exit 1`，可挂 CI：
+
+```bash
+# 基线 & 候选各存一份指标
+python evaluation/run_retrieval_eval.py --dataset ... --dump base.jsonl --metrics-json base.json
+python evaluation/run_retrieval_eval.py --dataset ... --dump new.jsonl  --metrics-json new.json
+# 门禁：任一比例型指标跌幅 > 0.02 即失败
+python evaluation/compare_eval.py --baseline base.json --candidate new.json --fail-if-drop 0.02
+```
+
+门禁只覆盖 0~1 的比例型指标；延迟与计数类指标（`n`/`n_missing`）只展示、不卡阈值——毫秒量纲与绝对阈值不可比，硬卡会出假警报。

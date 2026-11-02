@@ -1,0 +1,41 @@
+{
+  "k": 5,
+  "per_config": {
+    "full": {
+      "n": 10,
+      "n_missing": 0,
+      "hit@5": 1.0,
+      "recall@5": 1.0,
+      "mrr": 1.0,
+      "ndcg@5": 1.0,
+      "avg_latency_ms": 8600.0
+    },
+    "no_hyde": {
+      "n": 10,
+      "n_missing": 0,
+      "hit@5": 0.8,
+      "recall@5": 0.8,
+      "mrr": 0.8,
+      "ndcg@5": 0.8,
+      "avg_latency_ms": 6800.0
+    },
+    "no_rerank": {
+      "n": 10,
+      "n_missing": 0,
+      "hit@5": 1.0,
+      "recall@5": 1.0,
+      "mrr": 0.55,
+      "ndcg@5": 0.6990851032372184,
+      "avg_latency_ms": 5200.0
+    },
+    "no_rrf": {
+      "n": 10,
+      "n_missing": 0,
+      "hit@5": 1.0,
+      "recall@5": 0.95,
+      "mrr": 0.9199999999999999,
+      "ndcg@5": 0.8770065694682943,
+      "avg_latency_ms": 6800.0
+    }
+  }
+}
