@@ -2,10 +2,9 @@ import asyncio
 import json
 import sys
 
-from agents.mcp import MCPServerSse
-
 from app.conf.bailian_mcp_config import mcp_config
 from app.core.logger import logger
+from app.utils.mcp_result_parser import parse_mcp_pages
 from app.utils.task_utils import add_done_task, add_running_task
 
 
@@ -18,6 +17,11 @@ async def mcp_call(query):
     :param query: 搜索查询词（通常是经过改写后的精准Query）
     :return: MCP返回的原始结果对象 (包含 content, isError 等字段)
     """
+
+    # 延迟导入：openai-agents SDK 只在真正发起 MCP 调用时才需要。
+    # 放在模块顶部会让整个节点文件在未装该 SDK 的环境（CI、跑解析单测时）直接导入失败，
+    # 使这段联网兜底逻辑彻底脱离自动化检查。
+    from agents.mcp import MCPServerSse
 
     # ==================================================================================
     # 初始化百炼MCP SSE客户端
@@ -121,29 +125,10 @@ def node_web_search_mcp(state):
 
             # 4. 解析结果
             if result and not result.isError and result.content:
-                # 解析MCP原始结果：提取文本内容并转为JSON对象
+                # 解析MCP原始结果：提取文本内容，交给纯函数做结构化与容错处理
                 # result.content 通常是一个列表，第一项包含文本结果
                 raw_text = result.content[0].text
-                try:
-                    data = json.loads(raw_text)
-                    pages = data.get("pages") or []
-
-                    logger.info(f"MCP 返回原始页面数量: {len(pages)}")
-
-                    # 遍历结果，统一封装为结构化格式
-                    for item in pages:
-                        snippet = (item.get("snippet") or "").strip()
-                        url = (item.get("url") or "").strip()
-                        title = (item.get("title") or "").strip()
-
-                        # 过滤无核心摘要的结果
-                        if not snippet:
-                            continue
-
-                        docs.append({"title": title, "url": url, "snippet": snippet})
-
-                except json.JSONDecodeError:
-                    logger.error(f"MCP 返回结果解析 JSON 失败: {raw_text[:100]}...")
+                docs = parse_mcp_pages(raw_text)
             else:
                 if result and result.isError:
                     logger.error(f"MCP 返回错误: {result}")
